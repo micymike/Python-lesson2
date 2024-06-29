@@ -105,7 +105,7 @@ if send_button and url:
         st.error("Invalid YouTube URL. Please enter a valid YouTube video URL.")
     else:
         try:
-            with st.spinner("Please wait while we  Fetch the video information..."):
+            with st.spinner("Please wait while we Fetch the video information..."):
                 ydl_opts = {'format': 'bestvideo+bestaudio/best'}
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     info = ydl.extract_info(url, download=False)
