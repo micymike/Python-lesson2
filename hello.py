@@ -3,17 +3,35 @@ import yt_dlp
 import os
 import subprocess
 import tempfile
+import re
 
 def check_ffmpeg():
     try:
         subprocess.run(["ffmpeg", "-version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return True
-    except subprocess.CalledProcessError:
+    except (subprocess.CalledProcessError, FileNotFoundError):
         return False
+
+def format_duration(seconds):
+    minutes, seconds = divmod(seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    if hours > 0:
+        return f"{hours}h {minutes}m {seconds}s"
+    elif minutes > 0:
+        return f"{minutes}m {seconds}s"
+    else:
+        return f"{seconds}s"
+
+def is_valid_youtube_url(url):
+    youtube_regex = (
+        r'(https?://)?(www\.)?'
+        '(youtube|youtu|youtube-nocookie)\.(com|be)/'
+        '(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})')
+    return re.match(youtube_regex, url) is not None
 
 def download_video(url, resolution):
     try:
-        ffmpeg_available = check_ffmpeg()
+        ffmpeg_available = st.session_state.ffmpeg_available
         
         if ffmpeg_available:
             format_spec = f'bestvideo[height<={resolution[:-1]}]+bestaudio/best[height<={resolution[:-1]}]'
@@ -40,7 +58,7 @@ def download_video(url, resolution):
                     ydl.download([url])
                     downloaded_file = ydl.prepare_filename(info)
 
-            st.success(f"Congratulations!! Download completed successfully! Click the link below to download.")
+            st.success("Congratulations!! Download completed successfully! Click the button below to download.")
             with open(downloaded_file, 'rb') as f:
                 st.download_button(
                     label="Download Video",
@@ -60,39 +78,52 @@ def progress_hook(d):
     elif d['status'] == 'finished':
         st.session_state.status_text.text("Download finished, now converting...")
 
-st.set_page_config(page_title="Mike's YouTube Video Downloader", page_icon="🎥")
+st.set_page_config(page_title="MiEn's YouTube Video Downloader", page_icon="🎥", layout="wide")
 
 st.title("🎥 MiEn's Video Downloader")
 st.write("Download your favorite YouTube videos with ease!")
 
-ffmpeg_available = check_ffmpeg()
-if not ffmpeg_available:
+if 'ffmpeg_available' not in st.session_state:
+    st.session_state.ffmpeg_available = check_ffmpeg()
+
+if not st.session_state.ffmpeg_available:
     st.warning("FFmpeg is not installed. Video and audio streams cannot be merged. You may get lower quality downloads.")
 
 url = st.text_input("Paste or Enter the YouTube video URL:", key="url_input")
-send_button = st.button("Get Video Info")
+col1, col2, col3 = st.columns([1, 1, 1])
+send_button = col1.button("Get Video Info")
+clear_button = col2.button("Clear")
+
+if clear_button:
+    st.session_state.url_input = ""
+    st.session_state.pop('video_info', None)
+    st.session_state.pop('resolutions', None)
+    st.experimental_rerun()
 
 if send_button and url:
-    try:
-        with st.spinner("Fetching video information..."):
-            ydl_opts = {'format': 'bestvideo+bestaudio/best'}
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(url, download=False)
-                
-                st.session_state.video_info = {
-                    'title': info['title'],
-                    'duration': info['duration'],
-                    'views': info['view_count'],
-                    'thumbnail': info['thumbnail'],
-                }
-                
-                available_formats = [f for f in info['formats'] if f.get('height')]
-                resolutions = sorted(set([f'{f["height"]}p' for f in available_formats]), key=lambda x: int(x[:-1]), reverse=True)
-                st.session_state.resolutions = resolutions
-        
-        st.success("Video information loaded successfully!")
-    except Exception as e:
-        st.error(f"Error loading video information: {e}")
+    if not is_valid_youtube_url(url):
+        st.error("Invalid YouTube URL. Please enter a valid YouTube video URL.")
+    else:
+        try:
+            with st.spinner("Fetching video information..."):
+                ydl_opts = {'format': 'bestvideo+bestaudio/best'}
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(url, download=False)
+                    
+                    st.session_state.video_info = {
+                        'title': info['title'],
+                        'duration': info['duration'],
+                        'views': info['view_count'],
+                        'thumbnail': info['thumbnail'],
+                    }
+                    
+                    available_formats = [f for f in info['formats'] if f.get('height')]
+                    resolutions = sorted(set([f'{f["height"]}p' for f in available_formats]), key=lambda x: int(x[:-1]), reverse=True)
+                    st.session_state.resolutions = resolutions
+            
+            st.success("Video information loaded successfully!")
+        except Exception as e:
+            st.error(f"Error loading video information: {e}")
 
 if 'video_info' in st.session_state:
     st.subheader("Video Information")
@@ -100,9 +131,9 @@ if 'video_info' in st.session_state:
     with col1:
         st.image(st.session_state.video_info['thumbnail'], use_column_width=True)
     with col2:
-        st.write(f"**Title:** {st.session_state.video_info['title']}")
-        st.write(f"**Duration:** {st.session_state.video_info['duration']} seconds")
-        st.write(f"**Views:** {st.session_state.video_info['views']:,}")
+        st.markdown(f"**Title:** {st.session_state.video_info['title']}")
+        st.markdown(f"**Duration:** {format_duration(st.session_state.video_info['duration'])}")
+        st.markdown(f"**Views:** {st.session_state.video_info['views']:,}")
     
     selected_resolution = st.selectbox("Select Resolution", st.session_state.resolutions)
     
@@ -110,4 +141,4 @@ if 'video_info' in st.session_state:
         download_video(url, selected_resolution)
 
 st.markdown("---")
-st.write("Made with ❤️ by Michael Moses😊")
+st.markdown("<h6 style='text-align: center;'>Made with ❤️ by Michael Moses😊</h6>", unsafe_allow_html=True)
