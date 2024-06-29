@@ -19,9 +19,12 @@ def download_video(url, resolution):
         else:
             format_spec = f'best[height<={resolution[:-1]}]'
         
+        # Get the path to the Downloads folder
+        downloads_path = os.path.join(os.path.expanduser('~'), 'Downloads')
+        
         ydl_opts = {
             'format': format_spec,
-            'outtmpl': '%(title)s.%(ext)s',
+            'outtmpl': os.path.join(downloads_path, '%(title)s.%(ext)s'),
             'progress_hooks': [progress_hook],
         }
 
@@ -35,7 +38,7 @@ def download_video(url, resolution):
                 
                 ydl.download([url])
 
-        st.success("Hongeeraaa!! Download completed successfully!")
+        st.success(f"Hongeeraaa!! Download completed successfully! File saved in Downloads folder.")
         st.balloons()
     except Exception as e:
         st.error(f"An error occurred: {e}")
