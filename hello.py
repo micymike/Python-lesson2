@@ -25,8 +25,8 @@ def format_duration(seconds):
 def is_valid_youtube_url(url):
     youtube_regex = (
         r'(https?://)?(www\.)?'
-        '(youtube|youtu|youtube-nocookie)\.(com|be)/'
-        '(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})')
+        r'(youtube|youtu|youtube-nocookie)\.(com|be)/'
+        r'(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})')
     return re.match(youtube_regex, url) is not None
 
 def download_video(url, resolution):
@@ -80,19 +80,62 @@ def progress_hook(d):
 
 st.set_page_config(page_title="MiEn's YouTube Video Downloader", page_icon="🎥", layout="wide")
 
-st.title("🎥 MiKe's Video Downloader")
+# Custom CSS for styling
+st.markdown("""
+    <style>
+    .main-title {
+        color: #4A90E2;
+        text-align: center;
+        font-family: 'Arial Black', Gadget, sans-serif;
+    }
+    .button {
+        background-color: #4A90E2;
+        border: none;
+        color: green;
+        padding: 10px 20px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin: 4px 2px;
+        cursor: pointer;
+        border-radius: 16px;
+    }
+    .button:hover {
+        background-color: #45a049;
+    }
+    .download-button {
+        background-color: #4A90E2;
+        border: none;
+        color: white;
+        padding: 10px 20px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin: 4px 2px;
+        cursor: pointer;
+        border-radius: 16px;
+    }
+    .download-button:hover {
+        background-color: #007bb5;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+st.markdown("<h1 class='main-title'>🎥 MiKe's Youtube Video Downloader</h1>", unsafe_allow_html=True)
 st.write("Download your favorite YouTube videos with ease!")
 
 if 'ffmpeg_available' not in st.session_state:
     st.session_state.ffmpeg_available = check_ffmpeg()
 
 if not st.session_state.ffmpeg_available:
-    st.warning("FFmpeg is not installed. Video and audio streams cannot be merged. You may get lower quality downloads.")
+    st.warning("")
 
 url = st.text_input("Paste or Enter the YouTube video URL:", key="url_input")
 col1, col2, col3 = st.columns([1, 1, 1])
-send_button = col1.button("Get Video Info")
-clear_button = col2.button("Clear")
+send_button = col1.button("Get Video Info", key="get_info_button")
+clear_button = col2.button("Clear", key="clear_button")
 
 if clear_button:
     st.session_state.url_input = ""
