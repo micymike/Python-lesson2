@@ -98,4 +98,4 @@ if 'video_info' in st.session_state:
         download_video(url, selected_resolution)
 
 st.markdown("---")
-st.write("Made with ❤️ by Mike")
+st.write("Made with ❤️ by Michael Moses😊")
