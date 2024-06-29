@@ -2,12 +2,13 @@ import streamlit as st
 import yt_dlp
 import os
 import subprocess
+import tempfile
 
 def check_ffmpeg():
     try:
         subprocess.run(["ffmpeg", "-version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return True
-    except FileNotFoundError:
+    except subprocess.CalledProcessError:
         return False
 
 def download_video(url, resolution):
@@ -19,27 +20,35 @@ def download_video(url, resolution):
         else:
             format_spec = f'best[height<={resolution[:-1]}]'
         
-        # Get the path to the Downloads folder
-        downloads_path = os.path.join(os.path.expanduser('~'), 'Downloads')
-        
-        ydl_opts = {
-            'format': format_spec,
-            'outtmpl': os.path.join(downloads_path, '%(title)s.%(ext)s'),
-            'progress_hooks': [progress_hook],
-        }
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            ydl_opts = {
+                'format': format_spec,
+                'outtmpl': os.path.join(tmpdirname, '%(title)s.%(ext)s'),
+                'progress_hooks': [progress_hook],
+            }
 
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            video_title = info['title']
-            
-            with st.spinner(f"Downloading: {video_title}"):
-                st.session_state.progress_bar = st.progress(0)
-                st.session_state.status_text = st.empty()
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                video_title = info['title']
                 
-                ydl.download([url])
+                with st.spinner(f"Downloading: {video_title}"):
+                    if 'progress_bar' not in st.session_state:
+                        st.session_state.progress_bar = st.progress(0)
+                    if 'status_text' not in st.session_state:
+                        st.session_state.status_text = st.empty()
+                    
+                    ydl.download([url])
+                    downloaded_file = ydl.prepare_filename(info)
 
-        st.success(f"Hongeeraaa!! Download completed successfully! File saved in Downloads folder.")
-        st.balloons()
+            st.success(f"Congratulations!! Download completed successfully! Click the link below to download.")
+            with open(downloaded_file, 'rb') as f:
+                st.download_button(
+                    label="Download Video",
+                    data=f,
+                    file_name=os.path.basename(downloaded_file),
+                    mime="video/mp4"
+                )
+            st.balloons()
     except Exception as e:
         st.error(f"An error occurred: {e}")
 
