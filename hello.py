@@ -80,7 +80,7 @@ def progress_hook(d):
 
 st.set_page_config(page_title="MiEn's YouTube Video Downloader", page_icon="🎥", layout="wide")
 
-st.title("🎥 MiEn's Video Downloader")
+st.title("🎥 MiKe's Video Downloader")
 st.write("Download your favorite YouTube videos with ease!")
 
 if 'ffmpeg_available' not in st.session_state:
