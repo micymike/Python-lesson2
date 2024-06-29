@@ -57,7 +57,7 @@ ffmpeg_available = check_ffmpeg()
 if not ffmpeg_available:
     st.warning("FFmpeg is not installed. Video and audio streams cannot be merged. You may get lower quality downloads.")
 
-url = st.text_input("Enter the YouTube video URL:", key="url_input")
+url = st.text_input("Paste or Enter the YouTube video URL:", key="url_input")
 send_button = st.button("Get Video Info")
 
 if send_button and url:
