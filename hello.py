@@ -32,7 +32,10 @@ def is_valid_youtube_url(url):
 
 def search_youtube(query):
     videos_search = VideosSearch(query, limit=5)
-    return videos_search.result()['result']
+    results = videos_search.result()
+    if results and 'result' in results:
+        return results['result']
+    return []
 
 def download_media(url, resolution, is_audio):
     try:
@@ -78,15 +81,18 @@ def download_media(url, resolution, is_audio):
                     ydl.download([url])
                     downloaded_file = os.path.join(tmpdirname, f"{media_title}{file_extension}")
 
-            st.success("Your media is ready to be downloaded! Please click the button below.")
-            with open(downloaded_file, 'rb') as f:
-                st.download_button(
-                    label="Download Media",
-                    data=f,
-                    file_name=os.path.basename(downloaded_file),
-                    mime="audio/mpeg" if is_audio and ffmpeg_available else "video/mp4"
-                )
-            st.balloons()
+                    if os.path.exists(downloaded_file):
+                        st.success("Your media is ready to be downloaded! Please click the button below.")
+                        with open(downloaded_file, 'rb') as f:
+                            st.download_button(
+                                label="Download Media",
+                                data=f,
+                                file_name=os.path.basename(downloaded_file),
+                                mime="audio/mpeg" if is_audio and ffmpeg_available else "video/mp4"
+                            )
+                        st.balloons()
+                    else:
+                        st.error(f"Downloaded file not found: {downloaded_file}")
     except Exception as e:
         st.error(f"An error occurred: {e}")
 
@@ -188,22 +194,25 @@ if 'url' in st.session_state and st.session_state.url:
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     info = ydl.extract_info(st.session_state.url, download=False)
 
-                    st.session_state.video_info = {
-                        'title': info['title'],
-                        'duration': info['duration'],
-                        'views': info['view_count'],
-                        'thumbnail': info['thumbnail'],
-                    }
+                    if info:
+                        st.session_state.video_info = {
+                            'title': info.get('title', 'Unknown Title'),
+                            'duration': info.get('duration', 0),
+                            'views': info.get('view_count', 0),
+                            'thumbnail': info.get('thumbnail', ''),
+                        }
 
-                    available_formats = [f for f in info['formats'] if f.get('height')]
-                    resolutions = sorted(set([f'{f["height"]}p' for f in available_formats]), key=lambda x: int(x[:-1]), reverse=True)
-                    st.session_state.resolutions = resolutions
+                        available_formats = [f for f in info.get('formats', []) if f.get('height')]
+                        resolutions = sorted(set([f'{f["height"]}p' for f in available_formats if f.get('height')]), key=lambda x: int(x[:-1]), reverse=True)
+                        st.session_state.resolutions = resolutions if resolutions else ['720p']  # Default to 720p if no resolutions found
 
-            st.success("Video information loaded successfully!")
+                        st.success("Video information loaded successfully!")
+                    else:
+                        st.error("Failed to fetch video information. Please try again.")
         except Exception as e:
             st.error(f"Error loading video information: {e}")
 
-if 'video_info' in st.session_state:
+if 'video_info' in st.session_state and st.session_state.video_info:
     st.subheader("Video Information")
     col1, col2 = st.columns([1, 2])
     with col1:
@@ -215,7 +224,7 @@ if 'video_info' in st.session_state:
 
     download_type = st.radio("Choose download type:", ("Video", "Audio"))
 
-    if download_type == "Video":
+    if download_type == "Video" and 'resolutions' in st.session_state:
         selected_resolution = st.selectbox("Select Resolution", st.session_state.resolutions)
     else:
         if not st.session_state.ffmpeg_available:
