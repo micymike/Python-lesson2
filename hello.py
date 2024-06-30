@@ -150,7 +150,7 @@ if 'ffmpeg_available' not in st.session_state:
     st.session_state.ffmpeg_available = check_ffmpeg()
 
 if not st.session_state.ffmpeg_available:
-    st.warning("FFmpeg is not available. Some features may be limited.")
+    st.warning("")
 
 search_method = st.radio("Choose search method:", ("Search for a song/video", "Paste YouTube URL"))
 
@@ -219,7 +219,7 @@ if 'video_info' in st.session_state:
         selected_resolution = st.selectbox("Select Resolution", st.session_state.resolutions)
     else:
         if not st.session_state.ffmpeg_available:
-            st.warning("FFmpeg is not available. Audio conversion may be limited.")
+            st.warning("")
 
     if st.button("Download"):
         if download_type == "Video":
