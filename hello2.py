@@ -22,13 +22,6 @@ def format_duration(seconds):
     else:
         return f"{seconds}s"
 
-def is_valid_youtube_url(url):
-    youtube_regex = (
-        r'(https?://)?(www\.)?'
-        r'(youtube|youtu|youtube-nocookie)\.(com|be)/'
-        r'(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})')
-    return re.match(youtube_regex, url) is not None
-
 def download_media(url, resolution, is_audio):
     try:
         ffmpeg_available = st.session_state.ffmpeg_available
@@ -64,7 +57,7 @@ def download_media(url, resolution, is_audio):
                 info = ydl.extract_info(url, download=False)
                 media_title = info['title']
                 
-                with st.spinner(f"Preparing download: {media_title}"):
+                with st.spinner(f"Downloading: {media_title}"):
                     if 'progress_bar' not in st.session_state:
                         st.session_state.progress_bar = st.progress(0)
                     if 'status_text' not in st.session_state:
@@ -73,7 +66,7 @@ def download_media(url, resolution, is_audio):
                     ydl.download([url])
                     downloaded_file = os.path.join(tmpdirname, f"{media_title}{file_extension}")
 
-            st.success("Your video is ready to be downloaded! Please click the button below.")
+            st.success("Congratulations!! Download completed successfully! Click the button below to download.")
             with open(downloaded_file, 'rb') as f:
                 st.download_button(
                     label="Download Media",
@@ -93,7 +86,7 @@ def progress_hook(d):
     elif d['status'] == 'finished':
         st.session_state.status_text.text("Download finished, now converting...")
 
-st.set_page_config(page_title="MiKe's YouTube Video Downloader", page_icon="🎥", layout="wide")
+st.set_page_config(page_title="MiKe's Video Downloader", page_icon="🎥", layout="wide")
 
 # Custom CSS for styling
 st.markdown("""
@@ -138,18 +131,18 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h1 class='main-title'>🎥 MiKe's Youtube Video Downloader</h1>", unsafe_allow_html=True)
-st.write("Download your favorite YouTube videos with ease!")
+st.markdown("<h1 class='main-title'>🎥 MiKe's Video Downloader</h1>", unsafe_allow_html=True)
+st.write("Download videos from any website with ease!")
 
 if 'ffmpeg_available' not in st.session_state:
     st.session_state.ffmpeg_available = check_ffmpeg()
 
 if not st.session_state.ffmpeg_available:
-    st.warning("")
+    st.warning("FFmpeg is not installed. Video and audio streams cannot be merged. You may get lower quality downloads.")
 
-url = st.text_input("Paste or Enter the YouTube video URL:", key="url_input")
+url = st.text_input("Paste or Enter the video URL:", key="url_input")
 col1, col2, col3 = st.columns([1, 1, 1])
-send_button = col1.button("Get Video Info", key="get_info_button")
+send_button = col1.button("Get Media Info", key="get_info_button")
 clear_button = col2.button("Clear", key="clear_button")
 
 if clear_button:
@@ -158,39 +151,36 @@ if clear_button:
     st.experimental_rerun()
 
 if send_button and url:
-    if not is_valid_youtube_url(url):
-        st.error("Invalid YouTube URL. Please enter a valid YouTube video URL.")
-    else:
-        try:
-            with st.spinner("Please wait while we Fetch the video information..."):
-                ydl_opts = {'format': 'bestvideo+bestaudio/best'}
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    info = ydl.extract_info(url, download=False)
-                    
-                    st.session_state.video_info = {
-                        'title': info['title'],
-                        'duration': info['duration'],
-                        'views': info['view_count'],
-                        'thumbnail': info['thumbnail'],
-                    }
-                    
-                    available_formats = [f for f in info['formats'] if f.get('height')]
-                    resolutions = sorted(set([f'{f["height"]}p' for f in available_formats]), key=lambda x: int(x[:-1]), reverse=True)
-                    st.session_state.resolutions = resolutions
-            
-            st.success("Video information loaded successfully!")
-        except Exception as e:
-            st.error(f"Error loading video information: {e}")
+    try:
+        with st.spinner("Please wait while we Fetch the media information..."):
+            ydl_opts = {'format': 'bestvideo+bestaudio/best'}
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                
+                st.session_state.video_info = {
+                    'title': info['title'],
+                    'duration': info['duration'],
+                    'views': info.get('view_count', 'N/A'),
+                    'thumbnail': info.get('thumbnail', 'N/A'),
+                }
+                
+                available_formats = [f for f in info['formats'] if f.get('height')]
+                resolutions = sorted(set([f'{f["height"]}p' for f in available_formats]), key=lambda x: int(x[:-1]), reverse=True)
+                st.session_state.resolutions = resolutions
+        
+        st.success("Media information loaded successfully!")
+    except Exception as e:
+        st.error(f"Error loading media information: {e}")
 
 if 'video_info' in st.session_state:
-    st.subheader("Video Information")
+    st.subheader("Media Information")
     col1, col2 = st.columns([1, 2])
     with col1:
         st.image(st.session_state.video_info['thumbnail'], use_column_width=True)
     with col2:
         st.markdown(f"**Title:** {st.session_state.video_info['title']}")
         st.markdown(f"**Duration:** {format_duration(st.session_state.video_info['duration'])}")
-        st.markdown(f"**Views:** {st.session_state.video_info['views']:,}")
+        st.markdown(f"**Views:** {st.session_state.video_info['views']}")
     
     download_type = st.radio("Choose download type:", ("Video", "Audio"))
     
@@ -198,7 +188,7 @@ if 'video_info' in st.session_state:
         selected_resolution = st.selectbox("Select Resolution", st.session_state.resolutions)
     else:
         if not st.session_state.ffmpeg_available:
-            st.warning("")
+            st.warning("FFmpeg is not installed. Audio conversion might not work properly.")
     
     if st.button("Download"):
         if download_type == "Video":
