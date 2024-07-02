@@ -8,57 +8,51 @@ from youtubesearchpython import VideosSearch
 
 def check_ffmpeg():
     try:
-        subprocess.run(["ffmpeg", "-version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(["ffmpeg", "-version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
         return True
     except (subprocess.CalledProcessError, FileNotFoundError):
         return False
 
 def format_duration(seconds):
-    minutes, seconds = divmod(seconds, 60)
+    minutes, seconds = divmod(int(seconds), 60)
     hours, minutes = divmod(minutes, 60)
     if hours > 0:
-        return f"{hours}h {minutes}m {seconds}s"
+        return f"{hours}h {minutes:02d}m {seconds:02d}s"
     elif minutes > 0:
-        return f"{minutes}m {seconds}s"
+        return f"{minutes}m {seconds:02d}s"
     else:
         return f"{seconds}s"
 
 def is_valid_youtube_url(url):
     youtube_regex = (
-        r'(https?://)?(www\.)?'
-        r'(youtube|youtu|youtube-nocookie)\.(com|be)/'
+        r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/'
         r'(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})')
     return re.match(youtube_regex, url) is not None
 
 def search_youtube(query):
-    videos_search = VideosSearch(query, limit=5)
-    results = videos_search.result()
-    if results and 'result' in results:
-        return results['result']
-    return []
+    try:
+        videos_search = VideosSearch(query, limit=5)
+        results = videos_search.result()
+        return results.get('result', [])
+    except Exception as e:
+        st.error(f"Error searching YouTube: {e}")
+        return []
 
 def download_media(url, resolution, is_audio):
     try:
         ffmpeg_available = st.session_state.ffmpeg_available
 
         if is_audio:
-            if ffmpeg_available:
-                format_spec = 'bestaudio/best'
-                file_extension = '.mp3'
-            else:
-                format_spec = 'bestaudio/best'
-                file_extension = '.webm'
-        elif ffmpeg_available:
-            format_spec = f'bestvideo[height<={resolution[:-1]}]+bestaudio/best[height<={resolution[:-1]}]'
-            file_extension = '.mp4'
+            format_spec = 'bestaudio/best'
+            file_extension = '.mp3' if ffmpeg_available else '.webm'
         else:
-            format_spec = f'best[height<={resolution[:-1]}]'
+            format_spec = f'bestvideo[height<={resolution[:-1]}]+bestaudio/best[height<={resolution[:-1]}]' if ffmpeg_available else f'best[height<={resolution[:-1]}]'
             file_extension = '.mp4'
 
         with tempfile.TemporaryDirectory() as tmpdirname:
             ydl_opts = {
                 'format': format_spec,
-                'outtmpl': os.path.join(tmpdirname, '%(title)s' + file_extension),
+                'outtmpl': os.path.join(tmpdirname, '%(title)s.%(ext)s'),
                 'progress_hooks': [progress_hook],
             }
             if is_audio and ffmpeg_available:
@@ -69,44 +63,38 @@ def download_media(url, resolution, is_audio):
                 }]
 
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(url, download=False)
-                media_title = info['title']
+                info = ydl.extract_info(url, download=True)
+                filename = ydl.prepare_filename(info)
+                final_filename = os.path.splitext(filename)[0] + file_extension
 
-                with st.spinner(f"Preparing download: {media_title}"):
-                    if 'progress_bar' not in st.session_state:
-                        st.session_state.progress_bar = st.progress(0)
-                    if 'status_text' not in st.session_state:
-                        st.session_state.status_text = st.empty()
-
-                    ydl.download([url])
-                    downloaded_file = os.path.join(tmpdirname, f"{media_title}{file_extension}")
-
-                    if os.path.exists(downloaded_file):
-                        st.success("Your media is ready to be downloaded! Please click the button below.")
-                        with open(downloaded_file, 'rb') as f:
-                            st.download_button(
-                                label="Download Media",
-                                data=f,
-                                file_name=os.path.basename(downloaded_file),
-                                mime="audio/mpeg" if is_audio and ffmpeg_available else "video/mp4"
-                            )
-                        st.balloons()
-                    else:
-                        st.error(f"Downloaded file not found: {downloaded_file}")
+                if os.path.exists(final_filename):
+                    st.success("Your media is ready to be downloaded! Please click the button below.")
+                    with open(final_filename, 'rb') as f:
+                        st.download_button(
+                            label="Download Media",
+                            data=f,
+                            file_name=os.path.basename(final_filename),
+                            mime="audio/mpeg" if is_audio and ffmpeg_available else "video/mp4"
+                        )
+                    st.balloons()
+                else:
+                    st.error(f"Downloaded file not found: {final_filename}")
     except Exception as e:
-        st.error(f"An error occurred: {e}")
+        st.error(f"An error occurred during download: {e}")
 
 def progress_hook(d):
     if d['status'] == 'downloading':
-        progress = float(d['downloaded_bytes'] / d['total_bytes']) * 100
-        st.session_state.progress_bar.progress(int(progress))
-        st.session_state.status_text.text(f"Downloaded: {d['downloaded_bytes'] / 1024 / 1024:.2f} MB / {d['total_bytes'] / 1024 / 1024:.2f} MB")
+        total_bytes = d.get('total_bytes') or d.get('total_bytes_estimate', 0)
+        if total_bytes > 0:
+            progress = (d['downloaded_bytes'] / total_bytes) * 100
+            st.session_state.progress_bar.progress(int(progress))
+            st.session_state.status_text.text(f"Downloaded: {d['downloaded_bytes'] / 1024 / 1024:.2f} MB / {total_bytes / 1024 / 1024:.2f} MB")
     elif d['status'] == 'finished':
         st.session_state.status_text.text("Download finished, now processing...")
 
 st.set_page_config(page_title="MiKe's YouTube Video Downloader", page_icon="🎥", layout="wide")
 
-# Custom CSS for styling
+# Custom CSS for styling (unchanged)
 st.markdown("""
     <style>
     .main-title {
@@ -156,7 +144,7 @@ if 'ffmpeg_available' not in st.session_state:
     st.session_state.ffmpeg_available = check_ffmpeg()
 
 if not st.session_state.ffmpeg_available:
-    st.warning("")
+    st.warning("FFmpeg is not available. Some features may be limited.")
 
 search_method = st.radio("Choose search method:", ("Search for a song/video", "Paste YouTube URL"))
 
@@ -178,7 +166,7 @@ if search_method == "Search for a song/video":
             st.session_state.url = url
         else:
             st.write("No results found.")
-            url = None
+            st.session_state.url = None
 else:
     url = st.text_input("Paste or Enter the YouTube video URL:", key="url_input")
     if url:
@@ -227,14 +215,17 @@ if 'video_info' in st.session_state and st.session_state.video_info:
     if download_type == "Video" and 'resolutions' in st.session_state:
         selected_resolution = st.selectbox("Select Resolution", st.session_state.resolutions)
     else:
+        selected_resolution = None
         if not st.session_state.ffmpeg_available:
-            st.warning("")
+            st.warning("FFmpeg is not available. Audio quality might be affected.")
+
+    if 'progress_bar' not in st.session_state:
+        st.session_state.progress_bar = st.progress(0)
+    if 'status_text' not in st.session_state:
+        st.session_state.status_text = st.empty()
 
     if st.button("Download"):
-        if download_type == "Video":
-            download_media(st.session_state.url, selected_resolution, is_audio=False)
-        else:
-            download_media(st.session_state.url, None, is_audio=True)
+        download_media(st.session_state.url, selected_resolution, is_audio=(download_type == "Audio"))
 
 st.markdown("---")
 st.markdown("<h6 style='text-align: center;'>Made with ❤️ by Michael Moses😊</h6>", unsafe_allow_html=True)
@@ -242,4 +233,4 @@ st.markdown("<h6 style='text-align: center;'>Made with ❤️ by Michael Moses�
 if st.button("Clear All"):
     for key in list(st.session_state.keys()):
         del st.session_state[key]
-    st.experimental_rerun()
+    st.rerun()
