@@ -144,7 +144,7 @@ if 'ffmpeg_available' not in st.session_state:
     st.session_state.ffmpeg_available = check_ffmpeg()
 
 if not st.session_state.ffmpeg_available:
-    st.warning("")
+    st.warning("This is a free to use service. Some videos that have copyright may not be available for download. Thank you for understanding.")
 
 search_method = st.radio("Choose search method:", ("Search for a song/video", "Paste YouTube URL"))
 
