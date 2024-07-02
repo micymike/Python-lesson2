@@ -144,7 +144,7 @@ if 'ffmpeg_available' not in st.session_state:
     st.session_state.ffmpeg_available = check_ffmpeg()
 
 if not st.session_state.ffmpeg_available:
-    st.warning("FFmpeg is not available. Some features may be limited.")
+    st.warning("")
 
 search_method = st.radio("Choose search method:", ("Search for a song/video", "Paste YouTube URL"))
 
@@ -177,7 +177,7 @@ if 'url' in st.session_state and st.session_state.url:
         st.error("Invalid YouTube URL. Please enter a valid YouTube video URL.")
     else:
         try:
-            with st.spinner("Please wait while we fetch the video information..."):
+            with st.spinner("Please wait while we fetch the media information..."):
                 ydl_opts = {'format': 'bestvideo+bestaudio/best'}
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     info = ydl.extract_info(st.session_state.url, download=False)
@@ -217,7 +217,7 @@ if 'video_info' in st.session_state and st.session_state.video_info:
     else:
         selected_resolution = None
         if not st.session_state.ffmpeg_available:
-            st.warning("FFmpeg is not available. Audio quality might be affected.")
+            st.warning("")
 
     if 'progress_bar' not in st.session_state:
         st.session_state.progress_bar = st.progress(0)
