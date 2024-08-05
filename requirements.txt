@@ -1,3 +1,4 @@
-streamlit>=1.10.0
-yt-dlp>=2023.3.4
+streamlit
+yt-dlp
 youtube-search-python
+flask
