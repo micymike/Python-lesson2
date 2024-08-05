@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Information</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1 class="main-title">🎥 Video Information</h1>
+    <div class="video-info">
+        <img src="{{ video_info['thumbnail'] }}" alt="Thumbnail">
+        <h2>{{ video_info['title'] }}</h2>
+        <p><strong>Duration:</strong> {{ video_info['duration'] | format_duration }}</p>
+        <p><strong>Views:</strong> {{ video_info['views'] }}</p>
+    </div>
+
+    <form action="{{ url_for('download') }}" method="post">
+        <input type="hidden" name="url" value="{{ video_info['url'] }}">
+        <label for="resolution">Choose resolution:</label>
+        <select name="resolution" id="resolution">
+            {% for res in resolutions %}
+                <option value="{{ res }}">{{ res }}</option>
+            {% endfor %}
+        </select>
+        
+        <label for="download_type">Download as:</label>
+        <select name="download_type" id="download_type">
+            <option value="video">Video</option>
+            <option value="audio">Audio</option>
+        </select>
+        
+        <button type="submit" class="button">Download</button>
+    </form>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul class="flashes">
+        {% for category, message in messages %}
+          <li class="{{ category }}">{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+</body>
+</html>

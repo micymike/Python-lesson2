@@ -94,51 +94,117 @@ def progress_hook(d):
 
 st.set_page_config(page_title="MiKe's YouTube Video Downloader", page_icon="🎥", layout="wide")
 
-# Custom CSS for styling (unchanged)
+# Updated Custom CSS for modern styling
 st.markdown("""
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
+    
+    body {
+        font-family: 'Roboto', sans-serif;
+        background-color: #f0f2f6;
+        color: #1e1e1e;
+    }
+    
+    .stApp {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+        background-color: white;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+    }
+    
+    h1, h2, h3 {
+        font-family: 'Roboto', sans-serif;
+        font-weight: 700;
+    }
+    
     .main-title {
-        color: #4A90E2;
+        color: #1e88e5;
         text-align: center;
-        font-family: 'Arial Black', Gadget, sans-serif;
+        font-size: 2.5rem;
+        margin-bottom: 2rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
     }
-    .button {
-        background-color: #4A90E2;
-        border: none;
+    
+    .stButton > button {
+        background-color: #1e88e5;
         color: white;
-        padding: 10px 20px;
-        text-align: center;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 16px;
-        margin: 4px 2px;
-        cursor: pointer;
-        border-radius: 16px;
-    }
-    .button:hover {
-        background-color: #45a049;
-    }
-    .download-button {
-        background-color: #4A90E2;
         border: none;
-        color: white;
-        padding: 10px 20px;
+        border-radius: 25px;
+        padding: 0.6rem 1.2rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .stButton > button:hover {
+        background-color: #1565c0;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    .stTextInput > div > div > input {
+        border-radius: 25px;
+        border: 2px solid #e0e0e0;
+        padding: 0.5rem 1rem;
+    }
+    
+    .stSelectbox > div > div > select {
+        border-radius: 25px;
+        border: 2px solid #e0e0e0;
+        padding: 0.5rem 1rem;
+    }
+    
+    .video-info {
+        background-color: #f5f5f5;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .video-info img {
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .stProgress > div > div > div {
+        background-color: #1e88e5;
+    }
+    
+    .footer {
         text-align: center;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 16px;
-        margin: 4px 2px;
-        cursor: pointer;
-        border-radius: 16px;
+        margin-top: 2rem;
+        font-size: 0.9rem;
+        color: #757575;
     }
-    .download-button:hover {
-        background-color: #007bb5;
+
+    .clear-button {
+        display: block;
+        margin: 2rem auto;
+        background-color: #e53935;
+        color: white;
+        border: none;
+        border-radius: 25px;
+        padding: 0.6rem 1.2rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
     }
+    
+    .clear-button:hover {
+        background-color: #d32f2f;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Hide Streamlit branding */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
-
-st.markdown("<h1 class='main-title'>🎥 MiKe's Youtube Video Downloader</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='main-title'>🎥 MiKe's YouTube Downloader</h1>", unsafe_allow_html=True)
 st.write("Download your favorite YouTube videos with ease!")
+
+
 
 if 'ffmpeg_available' not in st.session_state:
     st.session_state.ffmpeg_available = check_ffmpeg()
@@ -228,7 +294,7 @@ if 'video_info' in st.session_state and st.session_state.video_info:
         download_media(st.session_state.url, selected_resolution, is_audio=(download_type == "Audio"))
 
 st.markdown("---")
-st.markdown("<h6 style='text-align: center;'>Made with ❤️ by Michael Moses😊</h6>", unsafe_allow_html=True)
+st.markdown("<p class='footer'>Made with ❤️ by Michael Moses 😊</p>", unsafe_allow_html=True)
 
 if st.button("Clear All"):
     for key in list(st.session_state.keys()):
